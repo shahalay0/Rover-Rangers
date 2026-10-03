@@ -28,13 +28,6 @@ Deep-space links are weak, noisy, and constantly drifting. Signals arrive buried
 
 **Rover Rangers** — a team of roboticists applying estimation, filtering, and learning techniques to space communications.
 
-| Name | Role | GitHub |
-|---|---|---|
-| Priyanka Anil Lakariya | [Role, e.g. signal processing / filtering] | [@username] |
-| [Name] | [Role] | [@shahalay0] |
-| [Name] | [Role] | [@username] |
-| [Name] | [Role] | [@username] |
-
 ---
 
 ## Problem Statement
