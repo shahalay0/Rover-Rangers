@@ -1,428 +1,198 @@
-# Rover Rangers — Deep-Space Communication & Signal Intelligence
+# Rover Rangers: An Autonomous Receiver for Weak Satellite Signals
 
-**MATLAB in Space Hackathon · Track 1 (Advanced)**
+**MATLAB in Space Hackathon (SEDS × ESS at Northeastern), October 3, 2026**
+**Track 1 (Advanced): Deep-Space Communication & Signal Intelligence**
 
-Deep-space links are weak, noisy, and constantly drifting. Signals arrive buried in noise, distorted by multipath, and shifted by Doppler and oscillator drift. This project builds a **blind deep-space receiver** that **finds, identifies, cleans and decodes** radio signals under those conditions with **no human tuning**, using the RadioML benchmark as a stand-in for real deep-space transmissions.
+A ground station listening to a spacecraft receives a signal that is weak, buried in noise and shifted in frequency by Doppler. Rover Rangers is a receiver that handles all of it **on its own**: it finds the signal, identifies its modulation, cleans it up and decodes it back into data, **with no human tuning**.
 
-![Full pipeline: find, identify, clean, decode](alay/demo_full_1.png)
+The project has four parts, each built by a different team member, moving step by step from simulated benchmarks to a real satellite pass.
 
-*At 7 dB the cleaned constellation still looks like a foggy cloud, yet the message is decoded with 0 bit errors.*
-
----
-
-## Table of Contents
-
-1. [Team](#team)
-2. [Highlights](#highlights)
-3. [Problem Statement](#problem-statement)
-4. [Approach](#approach)
-5. [Repository Structure](#repository-structure)
-6. [Getting Started](#getting-started)
-7. [Datasets](#datasets)
-8. [Usage](#usage)
-9. [Results](#results)
-10. [Live Demo](#live-demo)
-11. [Real Satellite Data: A Reality Check](#real-satellite-data-a-reality-check)
-12. [Challenges & Lessons Learned](#challenges--lessons-learned)
-13. [Future Work](#future-work)
-14. [Citations & License](#citations--license)
-
----
-
-## Team
-
-**Rover Rangers** — a team of roboticists applying estimation, filtering, and learning techniques to space communications.
-
----
-
-## Highlights
-
-| | Result |
-|---|---|
-| **Identify** | 1D CNN, 11 modulations: **54.1%** overall test accuracy, **~79%** at SNR ≥ 0 dB, **90–100%** on 9 of 11 classes at high SNR |
-| **Generalize** | Recognizes our own transmitter, never seen in training: **93 / 125** windows correct at 4 dB |
-| **Clean** | Fully blind receiver stays within **0.3–0.6 dB** of the theoretical bit-error rate |
-| **Decode** | Voyager K = 7 convolutional code + soft Viterbi: **0 errors in 18,000 bits** where the uncoded link loses **1.4%** |
-| **Live demo** | Type any message, pick BPSK / QPSK / 8PSK, watch it travel and get decoded: **0 failures in 90** stress-test transmissions |
-
----
-
-## Problem Statement
-
-A ground station listening to a distant spacecraft faces four core problems:
-
-- **Low SNR:** the signal is often at or below the noise floor.
-- **Channel impairments:** carrier frequency offset, Doppler drift, unknown arrival time and sampling phase distort the waveform.
-- **Unknown signal type:** the receiver may not know in advance which modulation scheme is being used.
-- **Bit errors:** even after synchronization, noise flips bits.
-
-**Our goal:** build a receiver that takes a raw recording and returns the transmitted message, knowing only the 32-bit CCSDS sync marker `1ACFFC1D` that real spacecraft frames begin with. Every other parameter (noise floor, timing, frequency offset, phase, modulation) is estimated from the received samples, and every stage is measured against theory.
-
----
-
-## Approach
-
-Our pipeline has four stages:
-
-```
- Raw IQ samples ──► 1. Find ──► 2. Identify ──► 3. Clean ──► 4. Decode ──► Message
-                    (energy       (1D CNN +       (timing,       (Voyager code,
-                     detection,    sync-word       Doppler,       soft Viterbi)
-                     frame sync)   check)          phase)
-```
-
-| Stage | Method | Why it needs no tuning |
+| Part | What it does | Headline result |
 |---|---|---|
-| **1. Find** | Split the recording into 64-sample blocks and measure energy. The noise floor is the quietest 10% of blocks; the burst is everything clearly above it, plus a safety margin. The frame start is found by sliding the sync marker over the symbols. | The noise floor is measured from the recording itself. |
-| **2. Identify** | 1D CNN trained on RadioML. Each 128-sample window is power-normalized to the training data's scale; the decision is a majority vote over windows, then **confirmed by the sync word**. | Votes over many windows; the sync word catches wrong guesses. |
-| **3a. Timing** | Pick the sampling instant where the symbols are sharpest (energy peak; for BPSK/QPSK/8PSK, jointly with the Doppler search). | Chosen from the data. |
-| **3b. Doppler** | M-th-power method (Viterbi & Viterbi): raising PSK samples to the power M removes the data, leaving only the rotation. Search many candidate offsets and keep the one where the M-th-power samples add up most coherently; a decision-directed pass removes residual drift. | Grid search, no loop gains to tune. |
-| **3c. Phase ambiguity** | After removing the rotation, the constellation still looks the same when turned by 360°/M. Try every rotation and keep the one matching the sync marker. | Standard space-link practice. |
-| **4. Decode** | Rate-1/2, K = 7 convolutional code (generators 171/133 octal, the Voyager / CCSDS code) with a **soft-decision Viterbi decoder** (64 states). | Soft decisions use the received sample values directly. |
+| **1. Recognizing signals and fixing Doppler** | CNN modulation classifier + blind Doppler correction | 88% accuracy (11 classes, SNR ≥ 0 dB); Doppler recovery 33% → 96.7% |
+| **2. Blind deep-space receiver** | Find, identify, clean and decode with the Voyager code | Within 0.3–0.6 dB of theory; 0 errors in 18,000 bits at 7 dB |
+| **3. Real telemetry through a hostile channel** | 861 real SatNOGS frames through drift, dropouts and hops | 99.2% recovered byte-for-byte at 2 dB |
+| **4. Decoding a real satellite pass** | Real OrigamiSat-2 recording, decoded end to end | 71 CRC-verified packets; 67 of 75 main packets (89%) |
 
-### Classifier details
-- **Model:** four 1D convolution layers (32, 64, 128, 128 filters; batch norm + ReLU; two max-pools), global average pooling, dense 64 with dropout, softmax. About 148k parameters.
-- **Input:** 2 × 128 IQ matrix.
-- **Output:** one of 11 modulation classes (8PSK, AM-DSB, AM-SSB, BPSK, CPFSK, GFSK, PAM4, QAM16, QAM64, QPSK, WBFM).
-- **Split:** 70 / 15 / 15 train / validation / test, shuffled with a fixed seed.
-- **Training:** 20 epochs, Adam (learning rate 10⁻³), batch 256, about 86 s per epoch on a GTX 1650.
-
-### Test bench
-RadioML has **no ground-truth bits**, so it can't score decoding. We built our own transmitter (Gray-coded BPSK / QPSK / 8PSK, raised-cosine pulses with roll-off 0.35, 8 samples per symbol) and a channel model (noise, fractional delay, Doppler offset, random phase, unknown arrival time). Known bits give exact bit-error rates.
+Each part's numbers come from its own models and test conditions, so they are reported separately rather than combined.
 
 ---
 
-## Repository Structure
+## Part 1: Recognizing signals and fixing Doppler
+
+**Goal:** identify the modulation of a weak signal automatically, and remove Doppler shift without being told the modulation.
+
+**What we did**
+1. Trained a compact 1D CNN (~150k parameters) on raw I/Q samples from **RadioML 2016.10A** (220,000 examples, 11 modulations, SNR −20 to +18 dB), with a 70/15/15 split balanced by modulation and SNR.
+2. Stress-tested it with simulated Doppler (random offsets up to ±0.02 cycles/sample).
+3. Built a **blind hypothesis-testing receiver**: it estimates and removes the offset assuming M = 2 and M = 4 (M-th power method), reclassifies each version, and keeps the most confident answer consistent with its hypothesis. No true labels are used.
+4. Repeated classification on **RadioML 2018.01A** (24 modulations, 1024-sample windows) using a balanced 10% subset.
+5. Built an end-to-end **link demo**: spacecraft commands and telemetry in a simplified CCSDS frame (sync word `1ACFFC1D`, length byte, CRC-16), sent through unknown Doppler and noise, then decoded blindly.
+
+**Results**
+
+| Test | Result |
+|---|---|
+| Accuracy, SNR ≥ 0 dB (11 classes) | **88%**; crosses 50% at −6 dB |
+| Doppler, BPSK/PAM4/QPSK, SNR ≥ 0 dB | 98.4% clean → 33.3% with Doppler → **96.7% blind-corrected** (oracle: 96.0%) |
+| Side effect on the other 8 classes | −1.2 points |
+| RadioML 2018, SNR ≥ 10 dB (24 classes) | **84%**; QAM16 and 8PSK at 100% |
+| Blind offset estimation, 128 → 1024 samples | QPSK 85% → 100%; 16QAM ~30% → ~90% |
+| Link demo, BPSK at 0 dB + QPSK at 5/10 dB | **8 of 9 frames** exact; the 9th had 1 flipped bit, rejected by the CRC |
+
+Remaining errors come from the data rather than the model: QAM16 vs QAM64 (too few symbols in 128 samples) and WBFM vs AM-DSB (silent source audio in the dataset).
+
+---
+
+## Part 2: A complete blind deep-space receiver
+
+**Goal:** turn raw noisy samples into the original message, knowing only the CCSDS sync marker `1ACFFC1D`.
+
+**Pipeline**
+1. **Find:** block energy against a noise floor measured from the recording, then a sync-marker search.
+2. **Identify:** 1D CNN on 128-sample windows trained on RadioML, majority vote across windows.
+3. **Clean:** energy-peak symbol timing, 4th-power Doppler search, sync-word phase resolution.
+4. **Decode:** Voyager K = 7, rate-1/2 convolutional code (CCSDS standard) with soft-decision Viterbi decoding.
+
+**Results**
+- **79%** classification accuracy at SNR ≥ 0 dB; recognizes a transmitter it never trained on (93 of 125 windows correct at 4 dB).
+- Measured BER matches textbook QPSK theory with perfect sync; the blind receiver stays **within 0.3–0.6 dB of theory** from 2 to 10 dB.
+- Frame start found to **±0.6 sample** at Es/N0 10 dB; Doppler estimated as 0.000199 vs true 0.000200.
+- **0 errors in 18,000 bits** at 7 and 8 dB with the Voyager code (uncoded: 1.4% / 0.7%).
+- End-to-end demo: a 134-character probe message arrives with 0 errors (16 errors without coding, at the same energy).
+
+---
+
+## Part 3: Real satellite telemetry through a hostile channel
+
+**Goal:** prove real satellite telemetry survives a difficult link and is delivered byte-for-byte.
+
+**What we did**
+1. Collected **861 real telemetry frames** (CW beacon frames) from **27 SatNOGS ground stations** over one week (Sept 26 – Oct 3, 2026).
+2. Framed each one like a spacecraft radio: sync word `1ACFFC1D`, sequence number, length and CRC.
+3. Sent them through a simulated channel with Doppler drift, a dropout, a frequency hop and noise.
+4. Recovered them with the autonomous receiver (carrier tracking, re-acquisition, IQNet classification, demodulation) and compared every byte.
+
+**Results**
+- **99.2%** of frames (854 of 861) recovered byte-exact at 2 dB; ~98–99% from 0 dB up.
+- Automatic re-acquisition after the dropout (0.13 s) and the frequency hop.
+- IQNet identified the signal as BPSK with **95% confidence**, no human input.
+
+---
+
+## Part 4: Decoding a real satellite pass
+
+**Goal:** decode real telemetry from a real satellite recording.
+
+**Data:** OrigamiSat-2 (NORAD 68795), 437.505 MHz, AFSK 1200 baud, AX.25. SatNOGS observation 15110269, ground station 4869, 2026-10-03, 06:43:51–06:49:51 UTC; 355 s of audio at 48 kHz.
+
+**Pipeline:** find tones → band-pass (700–2700 Hz) → mark/space discrimination → bit clock (DPLL) → NRZI, HDLC flags and bit unstuffing → CRC-16 and AX.25 parsing. Five decoders with different mark/space balances run in parallel; only CRC-valid frames are kept.
+
+**Results**
+- **71 AX.25 frames** decoded, every one passing its CRC (SatNOGS reported 50 for the same observation; count comparison only).
+- **67 of 75** main packets recovered (89%), measured with the satellite's own packet counter.
+- 355 s of audio decoded in **27 s** on a laptop, with no manual tuning.
+
+---
+
+## Repository structure
+
+> Check these paths against the repo and adjust names if needed.
 
 ```
 Rover-Rangers/
-├── README.md                     ← you are here
-├── data/                         ← datasets go here (NOT committed, see Datasets)
-│
-├── radio_tools.py                ← QPSK transmitter, channel models, blind receiver, Voyager code + Viterbi
-├── psk_tools.py                  ← BPSK / QPSK / 8PSK transmitter + receiver (joint timing + Doppler search)
-├── model.py                      ← the 1D CNN
-├── classifier_tools.py           ← applies the trained CNN to any signal (power normalization + voting)
-│
-├── prepare_data.py               ← RadioML → shuffled train / validation / test splits
-├── train.py                      ← trains the CNN, saves best_model.pt
-├── evaluate.py                   ← accuracy per SNR on the test set
-├── confusion.py                  ← confusion matrix at high SNR
-├── identify_test.py              ← tests the CNN on our own transmitter
-├── test_brain.py                 ← sanity check of the untrained network
-├── best_model.pt                 ← trained classifier weights
-│
-├── make_signal.py                ← transmitter test bench
-├── fog.py                        ← bit-error rate in noise vs theory
-├── timing.py                     ← symbol timing recovery
-├── spin.py                       ← Doppler estimation (4th-power method)
-├── unspin.py                     ← carrier recovery + phase ambiguity
-├── find_start.py                 ← burst detection + frame sync
-├── full_test.py                  ← full blind receiver vs theory
-│
-├── repeat_code.py                ← repetition code: fair vs unfair comparison
-├── voyager.py                    ← Voyager convolutional code + Viterbi
-├── deepspace.py                  ← full receiver, coded vs uncoded
-│
-├── demo.py                       ← coded vs uncoded text message
-├── demo_full.py                  ← full pipeline figure: find → identify → clean → decode
-├── live_demo.py                  ← interactive animated demo
-├── look.py, compare.py           ← dataset exploration plots
-├── save_all_figures.py           ← reruns every experiment, saves all figures + tables to figures/
-├── diag.py, diag2.py             ← GPU timing diagnostics (found the cuDNN slowdown)
-│
-├── figures/                      ← every figure and printed result table
-└── Blind_Deep_Space_Receiver.pptx ← presentation
+├── part1_classification_doppler/
+│   ├── track1_part1_radioml.ipynb      # RadioML 2016 classifier, Doppler test, blind correction
+│   ├── track1_part1_radioml.py         # same, headless (HPC)
+│   ├── track1_part2_next_steps.ipynb   # Doppler-augmented training, window-length study, SatNOGS pipeline
+│   ├── track1_part3_radioml2018.ipynb  # RadioML 2018, 24 classes, 1024 samples
+│   ├── track1_part3_radioml2018.py     # same, headless
+│   ├── run_rml2018.sbatch              # Slurm job for the HPC
+│   ├── recovery.py                     # end-to-end command/telemetry link demo
+│   └── outputs/                        # plots, metrics.json, trained models
+├── part2_blind_receiver/
+│   ├── radio_tools.py                  # transmitter, channel, blind receiver, Viterbi
+│   ├── model.py, train.py              # classifier
+│   └── demo_full.py                    # end-to-end demo
+├── part3_telemetry_frames/
+│   ├── satnogs_frames.py
+│   ├── pipeline.py
+│   └── events.log
+├── part4_satnogs_pass/
+│   └── results/satnogs_frames.csv      # all 71 decoded frames
+├── slides/                              # presentation decks
+└── README.md
 ```
 
----
+## Setup
 
-## Getting Started
-
-### Requirements
-
-**Python 3.11** with numpy, matplotlib and PyTorch. A GPU is optional (training takes about 20 minutes on a GTX 1650; the receiver and decoder run on any CPU).
-
-### Installation (Windows PowerShell)
-
-```powershell
-git clone https://github.com/shahalay0/Rover-Rangers.git; cd Rover-Rangers; python -m venv .venv; .\.venv\Scripts\Activate.ps1; python -m pip install numpy matplotlib; python -m pip install torch --index-url https://download.pytorch.org/whl/cu126
+```bash
+conda create -n radioml python=3.10 -y
+conda activate radioml
+pip install torch scikit-learn matplotlib scipy h5py ipykernel
 ```
 
-This clones the repo, creates a private Python environment, activates it, and installs the libraries (PyTorch built for NVIDIA GPUs with CUDA 12.6). For a CPU-only machine, use `python -m pip install torch` instead of the last command.
+On a GPU with an older driver (CUDA 12.x), install a matching PyTorch build:
 
-Then download the dataset into `data/` (see below).
-
----
-
-## Datasets
-
-> ⚠️ **The datasets are not stored in this repository.** They exceed GitHub's 100 MB per-file limit. Download them from the links below and place the files in `data/`.
-
-| Dataset | File | Size | Used for |
-|---|---|---|---|
-| RadioML 2016.10A | `RML2016.10a_dict.pkl` | 641 MB | Classifier training and evaluation |
-| RadioML 2018.01A *(optional)* | `GOLD_XYZ_OSC.0001_1024.hdf5` | 21.4 GB | Not used yet (future work) |
-| SatNOGS frames for QB50P2 | `.csv` export | 100 KB | Reality check (see below) |
-
-**RadioML 2016.10A:** 11 modulation types, 20 SNR levels (−20 dB to +18 dB in 2 dB steps), 1,000 examples per (modulation, SNR) pair, 220,000 examples in total. Each example is 128 complex samples stored as 2 rows (I and Q). It is synthetic, generated with GNU Radio, and includes white noise, multipath fading, frequency offset and sample-rate drift.
-
-**RadioML 2018.01A:** 24 modulation types, 26 SNR levels (−20 dB to +30 dB), about 2.5 million examples of 1,024 complex samples each.
-
-**Download:**
-
-```powershell
-mkdir data; curl.exe -L -o data/RML2016.10a_dict.pkl "https://huggingface.co/datasets/FlowVortex/RML/resolve/main/RML2016.10a_dict.pkl?download=true"
+```bash
+pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
 ```
 
-### Using the data from MATLAB (optional)
+## Data (not included in the repo)
 
-Our pipeline is written in Python, but the dataset can also be loaded in MATLAB. The 2016 file is a Python pickle, which MATLAB can't read directly; this one-time conversion writes a `.mat` file:
+| Dataset | Size | Source |
+|---|---|---|
+| RadioML 2016.10A (`RML2016.10a_dict.pkl`) | 641 MB | [Hugging Face mirror](https://huggingface.co/datasets/FlowVortex/RML/resolve/main/RML2016.10a_dict.pkl?download=true) · [DeepSig](https://www.deepsig.ai/datasets/) |
+| RadioML 2018.01A (`GOLD_XYZ_OSC.0001_1024.hdf5`) | 21.4 GB | [Hugging Face mirror](https://huggingface.co/datasets/FlowVortex/RML/resolve/main/GOLD_XYZ_OSC.0001_1024.hdf5?download=true) |
+| SatNOGS telemetry frames and recordings | — | [db.satnogs.org](https://db.satnogs.org) · [network.satnogs.org](https://network.satnogs.org) |
 
-```python
-import pickle
-import numpy as np
-import scipy.io as sio
+On an HPC cluster, download the 21 GB file to scratch storage rather than your home directory.
 
-with open("data/RML2016.10a_dict.pkl", "rb") as f:
-    d = pickle.load(f, encoding="latin1")
+## How to run
 
-mods = sorted({k[0] for k in d})
-snrs = sorted({k[1] for k in d})
-X, mod_idx, snr = [], [], []
-for m in mods:
-    for s in snrs:
-        x = d[(m, s)]                                  # (1000, 2, 128)
-        X.append(x)
-        mod_idx += [mods.index(m) + 1] * len(x)        # 1-based for MATLAB
-        snr += [s] * len(x)
+**Part 1**
+```bash
+# RadioML 2016: place the .pkl next to the notebook, then run all cells
+jupyter notebook track1_part1_radioml.ipynb      # set QUICK = True for a fast smoke test first
 
-sio.savemat("data/rml2016a.mat",
-            {"X": np.vstack(X).astype(np.float32), "mod_idx": np.array(mod_idx),
-             "snr": np.array(snr), "mods": np.array(mods, dtype=object)},
-            do_compression=True)
+# RadioML 2018 on a Slurm cluster
+sbatch --export=ALL,MAX_MINUTES=8 run_rml2018.sbatch
+
+# End-to-end link demo (numpy + matplotlib only)
+MPLBACKEND=Agg python recovery.py                # writes outputs/link_demo.png
 ```
 
-```matlab
-S = load("data/rml2016a.mat");
-k = 1;
-x = squeeze(S.X(k,1,:)) + 1i*squeeze(S.X(k,2,:));   % complex signal, 128x1
-fprintf("Modulation: %s, SNR: %d dB\n", strtrim(S.mods{S.mod_idx(k)}), S.snr(k));
-```
+**Parts 2–4:** see the scripts in each folder (for example `python demo_full.py` in Part 2).
 
----
+## Limitations
 
-## Usage
+- Most channel impairments are simulated; full real-RF IQ testing is still to come.
+- Doppler is mostly modelled as a constant offset within a window; real passes need Doppler-rate tracking.
+- Blind M-th power correction covers BPSK/PAM4/QPSK; 8PSK and higher-order QAM need longer windows and timing recovery.
+- Part 2's demodulator is QPSK-only; Part 4 covers AFSK 1200 / AX.25 only.
+- RadioML 2018 was trained on a 10% subset for 8 minutes because of time limits.
 
-| Task | Command |
+## Next steps
+
+- Run the full blind receiver on real SatNOGS IQ recordings.
+- Compare blind Doppler tracks with orbit-predicted Doppler (TLE) and track Doppler rate.
+- Add BPSK/8PSK demodulators, symbol-timing recovery and GMSK 9600 support.
+- Train on the full RadioML 2018 dataset with a deeper model; finish Doppler-augmented training.
+- Add Reed–Solomon or LDPC coding to lower the decoding "cliff".
+
+## Team
+
+| Part | Member |
 |---|---|
-| Prepare the dataset splits | `python prepare_data.py` |
-| Train the classifier | `python train.py` |
-| Evaluate on the test set | `python evaluate.py; python confusion.py` |
-| Blind receiver vs theory | `python full_test.py` |
-| Coded vs uncoded, full receiver | `python deepspace.py` |
-| Full pipeline figure | `python demo_full.py` |
-| **Interactive live demo** | `python live_demo.py` |
-| Reproduce every figure and table | `python save_all_figures.py` |
-
-All experiments use fixed random seeds, so every number in this README reproduces exactly. `save_all_figures.py` writes all figures and printed tables into `figures/`.
-
----
-
-## Results
-
-### 1. Classification accuracy (held-out test set)
-
-| SNR range | Accuracy |
-|---|---|
-| High SNR (≥ 10 dB) | 79.9% |
-| Medium SNR (0 to 8 dB) | 78.4% |
-| Low SNR (< 0 dB) | 29.5% |
-| **Overall** | **54.1%** |
-
-Random guessing would be 9% (11 classes). Per SNR level:
-
-| SNR (dB) | ≤ −12 | −10 | −8 | −6 | −4 | −2 | 0 | 2 to 18 |
-|---|---|---|---|---|---|---|---|---|
-| Accuracy | 8–15% | 22% | 38% | 50% | 59% | 71% | 76% | 78–81% |
-
-![Accuracy vs SNR](alay/evaluate_1.png)
-
-### 2. Confusion matrix (SNR ≥ 10 dB)
-
-![Confusion matrix](alay/confusion_1.png)
-
-Above +2 dB accuracy is flat at about 80%, so the remaining errors are not caused by noise. Nine of the 11 classes score **90–100%**; almost all errors come from two pairs:
-
-- **QAM16 → QAM64 (88% confused):** a 128-sample window holds only about 16 symbols, too few to tell 16 constellation points from 64.
-- **AM-DSB → WBFM (84% confused):** many analog examples were recorded during silent audio, which looks identical for both. This is a known limitation of the dataset.
-
-### 3. Generalization to our own transmitter
-
-The network was never trained on our transmitter, yet identified it correctly by majority vote at every SNR tested (125 windows each). The only adaptation needed was rescaling each window to RadioML's power level (our signal was about 15,000 times stronger).
-
-| SNR | 20 dB | 10 dB | 6 dB | 4 dB |
-|---|---|---|---|---|
-| Windows voting QPSK | 120 | 116 | 101 | 93 |
-
-### 4. Receiver stages
-
-**Noise only, perfect sync: matches theory exactly.**
-
-| Es/N0 (dB) | 0 | 2 | 4 | 6 | 8 | 10 | 12 |
-|---|---|---|---|---|---|---|---|
-| Measured BER | 0.1584 | 0.1039 | 0.0569 | 0.0227 | 0.0059 | 0.00069 | 0.00002 |
-| Theory | 0.1587 | 0.1040 | 0.0565 | 0.0230 | 0.0060 | 0.00078 | 0.00003 |
-
-![Constellations at 20, 10 and 4 dB](alay/fog_1.png)
-
-**Timing.** True delay 5.4 samples, unknown to the receiver. The maximum-energy sampling phase gives 1 error in 2,000 bits, in line with theory (≈ 1.6).
-
-![Wrong vs correct sampling phase](alay/timing_1.png)
-
-**Doppler (4th-power method).** The QPSK phases 45°, 135°, 225° and 315° all become 180° at the 4th power, so the data vanishes and four times the rotation remains. Estimated offset **0.000199** vs true **0.000200** cycles/sample.
-
-![Frequency offset estimation](alay/spin_1.png)
-
-**Phase ambiguity.** Only the correct rotation (180°) matched all 32 sync bits (the others: 0/32, 16/32, 16/32), giving 1 error in 1,968 bits at 10 dB.
-
-![Carrier recovery and ambiguity resolution](alay/unspin_1.png)
-
-**Detection and frame sync.** First symbol found at sample 3049 vs the true 3048.4, with 32/32 sync bits.
-
-![Energy detection and sync-word search](alay/find_start_1.png)
-
-### 5. Effect of signal recovery: full blind receiver vs theory
-
-Each trial uses a random arrival time, fractional delay, Doppler offset and carrier phase, none of which the receiver knows.
-
-| Es/N0 (dB) | 2 | 4 | 6 | 8 | 10 | 12 |
-|---|---|---|---|---|---|---|
-| Blind receiver | 0.1072 | 0.0617 | 0.0237 | 0.0074 | 0.0015 | 0.0002 |
-| Theory (perfect sync) | 0.1040 | 0.0565 | 0.0230 | 0.0060 | 0.0008 | 0.00003 |
-
-Without recovery, the same signals are undecodable (a half-symbol timing error alone gave 886 wrong bits out of 2,000; uncorrected Doppler smears the constellation into a ring). With recovery, the blind receiver stays within 0.3–0.6 dB of a receiver that knows everything.
-
-### 6. Error correction: a fair comparison
-
-All comparisons use the **same energy per information bit**, so coded links pay for their extra bits with more noise per transmitted bit.
-
-**Repetition code (×3) gives no real gain** (at 6 dB per information bit):
-
-| Scheme | Bit error rate |
-|---|---|
-| No code | 0.0230 |
-| ×3, soft combining, but **3× the energy** (unfair) | 0.0003 |
-| ×3, equal energy, majority vote | 0.0415 (worse) |
-| ×3, equal energy, soft combining | 0.0226 (no gain) |
-
-**Voyager convolutional code with the full blind receiver:**
-
-| SNR per info bit (dB) | 3 | 4 | 5 | 6 | 7 | 8 |
-|---|---|---|---|---|---|---|
-| Uncoded, theory | 0.079 | 0.057 | 0.038 | 0.023 | 0.013 | 0.0060 |
-| Blind receiver, uncoded | 0.081 | 0.062 | 0.041 | 0.026 | 0.014 | 0.0071 |
-| Blind receiver + Voyager code | 0.41 | 0.20 | 0.0039 | 0.0019 | **0** | **0** |
-
-Above about 5 dB the coded link is error-free (0 errors in 18,000 bits) where the uncoded link loses about 1%. Below about 4 dB every code falls off a "cliff" and performs worse than no code. In a separate test, deliberately flipping 40 code bits still gave 0 message errors.
-
-**Same energy, same channel (7 dB), a 134-character message:**
-
-```
-Uncoded (16 bit errors):
-Hello Earth! This is the deep-space p2obe. �ll sxsTems�nominal.�Sending z�ience dqta now, SiGnal is weck, b}t our co`e kemps it clean.
-
-Voyager code (0 bit errors):
-Hello Earth! This is the deep-space probe. All systems nominal. Sending science data now. Signal is weak, but our code keeps it clean.
-```
-
-![Coded vs uncoded demo](alay/demo_1.png)
-
-### Key observations
-- The blind receiver performs within a fraction of a dB of the theoretical limit, so synchronization is not the bottleneck; noise is.
-- QAM16 / QAM64 and AM-DSB / WBFM confusions are structural (window length and silent audio), not model failures.
-- Below −10 dB, classification accuracy falls to near chance (≈ 9% for 11 classes).
-- Error correction only helps above its cliff (about 4–5 dB per bit here); below it, coding makes things worse.
-
----
-
-## Live Demo
-
-```powershell
-python live_demo.py
-```
-
-Type any message (up to 60 characters), choose **BPSK, QPSK or 8PSK**, and press **TRANSMIT**. The window animates every stage:
-
-1. Message → bits → Voyager code
-2. The transmitted constellation, with bit labels
-3. The recording building up through noise, Doppler and an unknown delay
-4. Burst detection, then the CNN's votes, confirmed by the sync word
-5. The rotating cloud of samples snapping into clean clusters
-6. The message typed out twice: without coding (errors in red) and with the Voyager code
-
-The noise slider defaults to a level above each modulation's coding cliff (BPSK 4.5 dB, QPSK 4.5 dB, 8PSK 9 dB). Lowering it shows the cliff live. At the defaults, a stress test of 30 transmissions per modulation gave **0 failures**.
-
----
-
-## Real Satellite Data: A Reality Check
-
-We examined a SatNOGS frame export for the satellite **QB50P2** (1,096 frames from amateur ground stations, 2016–2026). It contains already-decoded text rather than raw IQ samples, so our receiver cannot run on it, but it is instructive:
-
-- **4 frames (March 2016)** are genuine AX.25 telemetry packets with the callsign `QB50P2`.
-- **The other 1,092 frames are almost certainly decoded noise.** 81.5% of their characters are E, I, T, S, N or A, the shortest Morse symbols, which is the signature of a Morse decoder running on pure noise (English text would be around 50%).
-
-This is exactly the failure our **Find** stage prevents: without a detector that measures the noise floor, ground stations turn noise into junk frames.
-
----
-
-## Challenges & Lessons Learned
-
-- **RadioML has no ground-truth bits.** It can test classification but not decoding, so we built our own transmitter and channel model with known bits.
-- **cuDNN was ~40× slower on our laptop GPU.** Training appeared frozen; timing each step in isolation showed cuDNN's 1D convolutions took 4.6 s per batch vs 0.1 s without it. Disabling cuDNN cut training from ~15 hours to 20 minutes.
-- **Two Python installations on one machine** (MSYS2 and Python 3.11) caused missing-library errors. A per-project virtual environment fixed it.
-- **Domain shift.** Our signals were ~15,000× stronger than RadioML's; rescaling each window to the training data's power was enough for the CNN to generalize.
-- **A periodic sync word fooled the frame search.** A sync pattern that walks around the constellation looks like itself when rotated 90° and shifted, so it matched at the wrong place. Switching to the CCSDS marker `1ACFFC1D` fixed it.
-- **End-to-end testing exposed two receiver bugs:** the noise floor was misjudged when a long coded frame filled most of the recording, and the detected burst sometimes clipped the first sync symbols. Both were fixed (quietest-10% noise estimate, safety margin).
-- **8th-power noise spikes.** For 8PSK, raising samples to the 8th power let a few noisy samples dominate the Doppler search. Using phase only (unit magnitude) fixed it.
-- **8PSK timing.** "Highest energy" sometimes picked the wrong sampling instant for 8PSK; searching timing and Doppler jointly took failures from 4 in 150 to 0.
-- **Fair comparisons matter.** The repetition code looked 70× better until energy per information bit was held equal; then it gave nothing.
-- **RadioML is synthetic and has known errata,** so results may not transfer directly to real hardware.
-
----
-
-## Future Work
-
-- Test on **raw IQ recordings** from the [SatNOGS network](https://network.satnogs.org).
-- Track a **changing Doppler offset** (Doppler rate) over real satellite passes.
-- **Fractional timing** (interpolating between samples) to close the remaining gap to theory at high SNR.
-- Evaluate on **RadioML 2018.01A** (1,024-sample windows) to separate QAM16 from QAM64.
-- **Stronger codes:** concatenate the convolutional code with Reed–Solomon (as on Voyager), or use turbo / LDPC codes, to move the coding cliff to lower SNR.
-- Demodulators for non-PSK classes (QAM, FSK, analog).
-
----
-
-## Citations & License
-
-### Datasets
-
-**RadioML 2016.10A and 2018.01A** — DeepSig Inc., licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (non-commercial use, with attribution).
-
-> O'Shea, T. J., & West, N. (2016). *Radio Machine Learning Dataset Generation with GNU Radio.* Proceedings of the GNU Radio Conference.
-
-Dataset page: https://www.deepsig.ai/datasets/
-
-**SatNOGS** — Libre Space Foundation (QB50P2 frame data).
-
-### Methods
-
-- A. J. Viterbi, "Error bounds for convolutional codes and an asymptotically optimum decoding algorithm," *IEEE Transactions on Information Theory*, 1967.
-- A. J. Viterbi and A. M. Viterbi, "Nonlinear estimation of PSK-modulated carrier phase with application to burst digital transmission," *IEEE Transactions on Information Theory*, 1983.
-- CCSDS 131.0-B, *TM Synchronization and Channel Coding* (rate-1/2, K = 7 convolutional code; attached sync marker `1ACFFC1D`).
-
-### Code
-[Choose a license for your own code, e.g. MIT. Note that the datasets keep their own CC BY-NC-SA 4.0 license regardless of the code license.]
-
----
-
-*Built by Rover Rangers for the MATLAB in Space Hackathon.*
+| 1. Recognizing signals and fixing Doppler | Priyanka Lakariya |
+| 2. Blind deep-space receiver | Alay |
+| 3. Real telemetry through a hostile channel | _add name_ |
+| 4. Decoding a real satellite pass | _add name_ |
+
+## Credits and references
+
+- **RadioML 2016.10A and 2018.01A:** DeepSig Inc., CC BY-NC-SA 4.0 (non-commercial, with attribution). T. J. O'Shea and N. West, "Radio Machine Learning Dataset Generation with GNU Radio," *Proc. GNU Radio Conference*, 2016. DeepSig notes known errata in these datasets; they are used here for prototyping, not as ground truth for real hardware.
+- **SatNOGS:** Libre Space Foundation, CC BY-SA 4.0. OrigamiSat-2 observation 15110269, ground station 4869.
+- A. J. Viterbi, "Error bounds for convolutional codes and an asymptotically optimum decoding algorithm," *IEEE Trans. Information Theory*, 1967.
+- A. J. Viterbi and A. M. Viterbi, "Nonlinear estimation of PSK-modulated carrier phase with application to burst digital transmission," *IEEE Trans. Information Theory*, 1983.
+- CCSDS 131.0-B, *TM Synchronization and Channel Coding* (rate-1/2, K = 7 convolutional code; attached sync marker 1ACFFC1D).
