@@ -1,0 +1,6 @@
+RadioML typical arrow power: 0.000068
+
+fog 20 dB: QPSK 94%  |  8PSK 3%  |  QAM16 1%   (cards voting QPSK: 120/125)
+fog 10 dB: QPSK 91%  |  8PSK 4%  |  QAM16 2%   (cards voting QPSK: 116/125)
+fog  6 dB: QPSK 76%  |  8PSK 12%  |  QAM16 6%   (cards voting QPSK: 101/125)
+fog  4 dB: QPSK 67%  |  8PSK 16%  |  QAM16 8%   (cards voting QPSK: 93/125)

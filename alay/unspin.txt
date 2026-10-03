@@ -1,0 +1,8 @@
+head turned   0 degrees: handshake matches 0/32
+head turned  90 degrees: handshake matches 16/32
+head turned 180 degrees: handshake matches 32/32
+head turned 270 degrees: handshake matches 16/32
+
+chose 180 degrees
+wrong secret bits: 1 out of 1968 (0.00051)
+textbook best at 10 dB fog: 0.00078

@@ -1,0 +1,22 @@
+Final exam score (all fog levels): 54.1%
+
+fog level  -20 dB:   7.9%  #
+fog level  -18 dB:   9.9%  ##
+fog level  -16 dB:  10.4%  ##
+fog level  -14 dB:  12.4%  ###
+fog level  -12 dB:  14.7%  ###
+fog level  -10 dB:  22.2%  #####
+fog level   -8 dB:  37.7%  #########
+fog level   -6 dB:  49.8%  ############
+fog level   -4 dB:  59.2%  ##############
+fog level   -2 dB:  70.5%  #################
+fog level    0 dB:  75.6%  ##################
+fog level    2 dB:  78.1%  ###################
+fog level    4 dB:  78.4%  ###################
+fog level    6 dB:  79.4%  ###################
+fog level    8 dB:  80.4%  ####################
+fog level   10 dB:  81.0%  ####################
+fog level   12 dB:  79.2%  ###################
+fog level   14 dB:  79.5%  ###################
+fog level   16 dB:  79.0%  ###################
+fog level   18 dB:  80.8%  ####################

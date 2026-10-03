@@ -1,0 +1,2 @@
+true spin     : 0.000200 turns per photo
+measured spin : 0.000199 turns per photo

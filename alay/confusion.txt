@@ -1,0 +1,13 @@
+On sunny days (10 dB and up):
+
+8PSK    correct  90.1%  | mistaken for QPSK 7%
+AM-DSB  correct  15.5%  | mistaken for WBFM 84%
+AM-SSB  correct  89.5%  | mistaken for GFSK 7%
+BPSK    correct  97.6%
+CPFSK   correct 100.0%
+GFSK    correct  96.1%
+PAM4    correct  99.1%
+QAM16   correct   8.6%  | mistaken for QAM64 88%
+QAM64   correct  91.8%  | mistaken for QAM16 6%
+QPSK    correct  96.9%
+WBFM    correct  92.9%  | mistaken for AM-DSB 7%

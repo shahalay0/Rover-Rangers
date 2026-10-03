@@ -1,0 +1,12 @@
+Mini demo: flipped 40 sent bits -> 0 wrong message bits
+
+message fog dB | no code (textbook) | Voyager code, FAIR | improvement
+             0 |            0.15866 |            0.46915 |      0x fewer errors
+             1 |            0.13093 |            0.41245 |      0x fewer errors
+             2 |            0.10403 |            0.31045 |      0x fewer errors
+             3 |            0.07890 |            0.14458 |      1x fewer errors
+             4 |            0.05650 |            0.04990 |      1x fewer errors
+             5 |            0.03768 |            0.00447 |      8x fewer errors
+             6 |            0.02301 |            0.00052 |     44x fewer errors
+             7 |            0.01259 |            0.00000 |    503x fewer errors
+             8 |            0.00600 |            0.00000 |    240x fewer errors

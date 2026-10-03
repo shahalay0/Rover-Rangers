@@ -1,0 +1,5 @@
+1. FIND: message between photos 2880 and 11904
+2. IDENTIFY: the network says QPSK (45 of 70 cards, 62% confident)
+3. DECODE: 0 wrong bits
+
+   "Hello Earth! This is the deep-space probe. All systems nominal. Sending science data now. Signal is weak, but our code keeps it clean."

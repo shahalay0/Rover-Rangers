@@ -1,0 +1,5 @@
+A. hiss level 0.093. Loud part found from photo 3008 to 11072
+B. best start photo within each group of 8: 1
+C. handshake lines up at position 5 (32/32 bits match)
+
+wrong secret bits: 3 out of 1968

@@ -1,0 +1,9 @@
+Message: 134 characters = 1072 bits
+
+WITHOUT code (16 wrong bits):
+  Hello Earth! This is the deep-space p2obe. �ll sxsTems�nominal.�Sending z�ience dqta now, SiGnal is weck, b}t our co`e kemps it clean.
+
+WITH Voyager code (0 wrong bits):
+  Hello Earth! This is the deep-space probe. All systems nominal. Sending science data now. Signal is weak, but our code keeps it clean.
+
+Receiver figured out: {'found': (2880, 11904), 'photo': 0, 'spin': 0.0001493101728723312, 'turn': 270, 'start': 21, 'handshake': 32}

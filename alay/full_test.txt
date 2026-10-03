@@ -1,0 +1,7 @@
+fog dB | our receiver | textbook | what it figured out (first try)
+     2 |      0.10723 |  0.10403 | arrived ~1351, found 1280 | spin -0.000074 vs -0.000076 | handshake 28/32
+     4 |      0.06174 |  0.05650 | arrived ~2030, found 1920 | spin +0.000189 vs +0.000188 | handshake 30/32
+     6 |      0.02369 |  0.02301 | arrived ~4835, found 4736 | spin +0.000048 vs +0.000049 | handshake 31/32
+     8 |      0.00736 |  0.00600 | arrived ~4207, found 4096 | spin +0.000145 vs +0.000144 | handshake 32/32
+    10 |      0.00151 |  0.00078 | arrived ~1799, found 1664 | spin -0.000177 vs -0.000177 | handshake 32/32
+    12 |      0.00020 |  0.00003 | arrived ~4304, found 4224 | spin -0.000097 vs -0.000097 | handshake 32/32
