@@ -42,38 +42,6 @@ Each part's numbers come from its own models and test conditions, so they are re
 
 Remaining errors come from the data rather than the model: QAM16 vs QAM64 (too few symbols in 128 samples) and WBFM vs AM-DSB (silent source audio in the dataset).
 
-### Part 1 in pictures
-
-![The 11 RadioML 2016 modulations at +18 dB: each leaves a distinct shape](images/p1_constellations.png)
-*The 11 RadioML 2016 modulations at +18 dB: each leaves a distinct shape*
-
-![Classifier accuracy vs SNR: chance below −12 dB, about 88% from 0 dB up](images/p1_accuracy_vs_snr.png)
-*Classifier accuracy vs SNR: chance below −12 dB, about 88% from 0 dB up*
-
-![Confusion matrix at SNR ≥ 0 dB: remaining errors are QAM16/QAM64 and WBFM/AM-DSB](images/p1_confusion_high_snr.png)
-*Confusion matrix at SNR ≥ 0 dB: remaining errors are QAM16/QAM64 and WBFM/AM-DSB*
-
-![Injected Doppler turns BPSK's line into a spinning loop; the blind estimate (0.0055 vs true 0.0055) restores it](images/p1_doppler_constellations.png)
-*Injected Doppler turns BPSK's line into a spinning loop; the blind estimate (0.0055 vs true 0.0055) restores it*
-
-![Blind offset estimation success vs SNR for BPSK, PAM4 and QPSK](images/p1_doppler_estimator.png)
-*Blind offset estimation success vs SNR for BPSK, PAM4 and QPSK*
-
-![Blind hypothesis-test correction (green) matches the oracle (red): 33% → 96.7% for BPSK/PAM4/QPSK](images/p1_doppler_blind_correction.png)
-*Blind hypothesis-test correction (green) matches the oracle (red): 33% → 96.7% for BPSK/PAM4/QPSK*
-
-![RadioML 2018: 24-class accuracy vs SNR, about 84% at SNR ≥ 10 dB](images/p1_rml2018_accuracy.png)
-*RadioML 2018: 24-class accuracy vs SNR, about 84% at SNR ≥ 10 dB*
-
-![RadioML 2018 confusion matrix at SNR ≥ 10 dB](images/p1_rml2018_confusion.png)
-*RadioML 2018 confusion matrix at SNR ≥ 10 dB*
-
-![Blind offset estimation with 128 (dashed) vs 1024 (solid) samples on RadioML 2018](images/p1_rml2018_window_length.png)
-*Blind offset estimation with 128 (dashed) vs 1024 (solid) samples on RadioML 2018*
-
-![Link demo: 'CMD DEPLOY_ANTENNA' recovered at 0 dB with a valid CRC](images/p1_link_demo.png)
-*Link demo: 'CMD DEPLOY_ANTENNA' recovered at 0 dB with a valid CRC*
-
 ---
 
 ## Part 2: A complete blind deep-space receiver
@@ -93,29 +61,6 @@ Remaining errors come from the data rather than the model: QAM16 vs QAM64 (too f
 - **0 errors in 18,000 bits** at 7 and 8 dB with the Voyager code (uncoded: 1.4% / 0.7%).
 - End-to-end demo: a 134-character probe message arrives with 0 errors (16 errors without coding, at the same energy).
 
-### Part 2 in pictures
-
-![Classifier accuracy climbs from chance to about 80% with SNR](images/p2_accuracy_vs_snr.jpg)
-*Classifier accuracy climbs from chance to about 80% with SNR*
-
-![Errors at high SNR come from two look-alike pairs](images/p2_confusion.jpg)
-*Errors at high SNR come from two look-alike pairs*
-
-![With perfect synchronisation, measured BER matches QPSK theory](images/p2_ber_vs_theory.jpg)
-*With perfect synchronisation, measured BER matches QPSK theory*
-
-![The blind receiver tracks the theoretical limit within 0.3–0.6 dB](images/p2_blind_receiver_vs_theory.jpg)
-*The blind receiver tracks the theoretical limit within 0.3–0.6 dB*
-
-![Full system: error-free with the Voyager code where uncoded loses 1%](images/p2_full_system_coded.jpg)
-*Full system: error-free with the Voyager code where uncoded loses 1%*
-
-![Same energy, same channel: uncoded message corrupted, coded message clean](images/p2_demo_corrupted_vs_clean.jpg)
-*Same energy, same channel: uncoded message corrupted, coded message clean*
-
-![End to end: find, identify, clean, decode](images/p2_end_to_end.jpg)
-*End to end: find, identify, clean, decode*
-
 ---
 
 ## Part 3: Real satellite telemetry through a hostile channel
@@ -133,17 +78,6 @@ Remaining errors come from the data rather than the model: QAM16 vs QAM64 (too f
 - Automatic re-acquisition after the dropout (0.13 s) and the frequency hop.
 - IQNet identified the signal as BPSK with **95% confidence**, no human input.
 
-### Part 3 in pictures
-
-![Before: Doppler curve, dropout and hop. After: a steady signal at 0 Hz for the whole pass](images/p3_before_after_spectrum.jpg)
-*Before: Doppler curve, dropout and hop. After: a steady signal at 0 Hz for the whole pass*
-
-![Byte-exact frame recovery vs SNR: 99% from 0 dB up](images/p3_recovery_vs_snr.jpg)
-*Byte-exact frame recovery vs SNR: 99% from 0 dB up*
-
-![Lost frames line up with the dropout and the hop; the receiver re-acquires on its own](images/p3_channel_events.jpg)
-*Lost frames line up with the dropout and the hop; the receiver re-acquires on its own*
-
 ---
 
 ## Part 4: Decoding a real satellite pass
@@ -159,31 +93,11 @@ Remaining errors come from the data rather than the model: QAM16 vs QAM64 (too f
 - **67 of 75** main packets recovered (89%), measured with the satellite's own packet counter.
 - 355 s of audio decoded in **27 s** on a laptop, with no manual tuning.
 
-### Part 4 in pictures
-
-![The OrigamiSat-2 recording; red lines mark decoded packets](images/p4_recording.jpg)
-*The OrigamiSat-2 recording; red lines mark decoded packets*
-
-![Where the packets are in the 6-minute pass](images/p4_packet_locations.jpg)
-*Where the packets are in the 6-minute pass*
-
-![Before and after filtering: clean tones and readable bits](images/p4_before_after_filtering.jpg)
-*Before and after filtering: clean tones and readable bits*
-
-![67 of 75 main packets decoded, checked with the satellite's own counter](images/p4_missed_packets.jpg)
-*67 of 75 main packets decoded, checked with the satellite's own counter*
-
-![Five decoders in parallel; the CRC decides which packets are kept](images/p4_self_tuning.jpg)
-*Five decoders in parallel; the CRC decides which packets are kept*
-
-![Decoded telemetry log](images/p4_telemetry_log.jpg)
-*Decoded telemetry log*
-
 ---
 
 ## Repository structure
 
-> Check these paths against the repo and adjust names if needed. The `images/` folder must sit next to this README for the pictures to show.
+> Check these paths against the repo and adjust names if needed.
 
 ```
 Rover-Rangers/
@@ -207,7 +121,6 @@ Rover-Rangers/
 ├── part4_satnogs_pass/
 │   └── results/satnogs_frames.csv      # all 71 decoded frames
 ├── slides/                              # presentation decks
-├── images/                              # figures used in this README
 └── README.md
 ```
 
