@@ -4,7 +4,7 @@
 
 Deep-space links are weak, noisy, and constantly drifting. Signals arrive buried in noise, distorted by multipath, and shifted by Doppler and oscillator drift. This project builds a **blind deep-space receiver** that **finds, identifies, cleans and decodes** radio signals under those conditions with **no human tuning**, using the RadioML benchmark as a stand-in for real deep-space transmissions.
 
-![Full pipeline: find, identify, clean, decode](alay/figures/demo_full_1.png)
+![Full pipeline: find, identify, clean, decode](alay/demo_full_1.png)
 
 *At 7 dB the cleaned constellation still looks like a foggy cloud, yet the message is decoded with 0 bit errors.*
 
@@ -246,11 +246,11 @@ Random guessing would be 9% (11 classes). Per SNR level:
 |---|---|---|---|---|---|---|---|---|
 | Accuracy | 8–15% | 22% | 38% | 50% | 59% | 71% | 76% | 78–81% |
 
-![Accuracy vs SNR](figures/evaluate_1.png)
+![Accuracy vs SNR](alay/evaluate_1.png)
 
 ### 2. Confusion matrix (SNR ≥ 10 dB)
 
-![Confusion matrix](figures/confusion_1.png)
+![Confusion matrix](alay/confusion_1.png)
 
 Above +2 dB accuracy is flat at about 80%, so the remaining errors are not caused by noise. Nine of the 11 classes score **90–100%**; almost all errors come from two pairs:
 
@@ -274,23 +274,23 @@ The network was never trained on our transmitter, yet identified it correctly by
 | Measured BER | 0.1584 | 0.1039 | 0.0569 | 0.0227 | 0.0059 | 0.00069 | 0.00002 |
 | Theory | 0.1587 | 0.1040 | 0.0565 | 0.0230 | 0.0060 | 0.00078 | 0.00003 |
 
-![Constellations at 20, 10 and 4 dB](figures/fog_1.png)
+![Constellations at 20, 10 and 4 dB](alay/fog_1.png)
 
 **Timing.** True delay 5.4 samples, unknown to the receiver. The maximum-energy sampling phase gives 1 error in 2,000 bits, in line with theory (≈ 1.6).
 
-![Wrong vs correct sampling phase](figures/timing_1.png)
+![Wrong vs correct sampling phase](alay/timing_1.png)
 
 **Doppler (4th-power method).** The QPSK phases 45°, 135°, 225° and 315° all become 180° at the 4th power, so the data vanishes and four times the rotation remains. Estimated offset **0.000199** vs true **0.000200** cycles/sample.
 
-![Frequency offset estimation](figures/spin_1.png)
+![Frequency offset estimation](alay/spin_1.png)
 
 **Phase ambiguity.** Only the correct rotation (180°) matched all 32 sync bits (the others: 0/32, 16/32, 16/32), giving 1 error in 1,968 bits at 10 dB.
 
-![Carrier recovery and ambiguity resolution](figures/unspin_1.png)
+![Carrier recovery and ambiguity resolution](alay/unspin_1.png)
 
 **Detection and frame sync.** First symbol found at sample 3049 vs the true 3048.4, with 32/32 sync bits.
 
-![Energy detection and sync-word search](figures/find_start_1.png)
+![Energy detection and sync-word search](alay/find_start_1.png)
 
 ### 5. Effect of signal recovery: full blind receiver vs theory
 
@@ -336,7 +336,7 @@ Voyager code (0 bit errors):
 Hello Earth! This is the deep-space probe. All systems nominal. Sending science data now. Signal is weak, but our code keeps it clean.
 ```
 
-![Coded vs uncoded demo](figures/demo_1.png)
+![Coded vs uncoded demo](alay/demo_1.png)
 
 ### Key observations
 - The blind receiver performs within a fraction of a dB of the theoretical limit, so synchronization is not the bottleneck; noise is.
