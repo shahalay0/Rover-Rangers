@@ -1,0 +1,7 @@
+data/*.pkl
+data/*.hdf5
+models/
+__pycache__/
+.ipynb_checkpoints/
+*:Zone.Identifier
+data/satnogs/demo_*

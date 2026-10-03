@@ -1,0 +1,7 @@
+numpy
+scipy
+matplotlib
+h5py        # only for RadioML 2018.01A
+scikit-learn
+torch       # optional: CNN classifier
+soundfile   # reading SatNOGS .ogg audio (or install ffmpeg)

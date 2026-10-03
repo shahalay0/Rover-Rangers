@@ -1,0 +1,6 @@
+metric,value
+Recording,Audio_OrigamiSat2.ogg
+Duration,355.4 s at 48000 Hz
+Tones used,1200 / 2200 Hz  (nominal: no clear tones found)
+Candidate packet bursts,117
+Frames decoded (CRC ok),71
