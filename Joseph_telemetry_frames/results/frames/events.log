@@ -1,0 +1,5 @@
+t=  0.000s  ACQUIRED carrier at +1509 Hz
+t=  8.661s  SIGNAL LOST, searching
+t=  8.789s  ACQUIRED carrier at +3955 Hz
+t= 14.379s  HOP detected, re-acquired at -574 Hz
+t= 28.788s  CLASSIFIED as BPSK (95% confident) via CNN
