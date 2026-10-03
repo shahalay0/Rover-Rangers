@@ -4,7 +4,7 @@
 
 Deep-space links are weak, noisy, and constantly drifting. Signals arrive buried in noise, distorted by multipath, and shifted by Doppler and oscillator drift. This project builds a **blind deep-space receiver** that **finds, identifies, cleans and decodes** radio signals under those conditions with **no human tuning**, using the RadioML benchmark as a stand-in for real deep-space transmissions.
 
-![Full pipeline: find, identify, clean, decode](figures/demo_full_1.png)
+![Full pipeline: find, identify, clean, decode](alay/figures/demo_full_1.png)
 
 *At 7 dB the cleaned constellation still looks like a foggy cloud, yet the message is decoded with 0 bit errors.*
 
